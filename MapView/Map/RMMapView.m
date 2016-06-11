@@ -3512,6 +3512,11 @@
         [_delegate mapView:self didChangeUserTrackingMode:_userTrackingMode animated:animated];
 }
 
+- (void)locationManager:(CLLocationManager *)manager
+	 didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    [self locationManager:manager didUpdateToLocation:[locations objectAtIndex:[locations count] -1] fromLocation:nil];
+}
+
 - (void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation
 {
     if ( ! _showsUserLocation || _mapScrollView.isDragging || ! newLocation || ! CLLocationCoordinate2DIsValid(newLocation.coordinate))
