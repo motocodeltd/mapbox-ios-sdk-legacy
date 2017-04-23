@@ -110,9 +110,7 @@
 
                 for (NSUInteger try = 0; tileData == nil && try < self.retryCount; ++try)
                 {
-                    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:currentURL];
-                    [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
-                    [request setTimeoutInterval:(self.requestTimeoutSeconds / (CGFloat)self.retryCount)];
+                    NSMutableURLRequest *request = [self getRequest:currentURL];
                     tileData = [NSURLConnection sendBrandedSynchronousRequest:request returningResponse:nil error:nil];
                 }
 
@@ -162,9 +160,8 @@
         for (NSUInteger try = 0; image == nil && try < self.retryCount; ++try)
         {
             NSHTTPURLResponse *response = nil;
-            NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[URLs objectAtIndex:0]];
-            [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
-            [request setTimeoutInterval:(self.requestTimeoutSeconds / (CGFloat)self.retryCount)];
+            
+            NSMutableURLRequest *request = [self getRequest:URLs[0]];
             image = [UIImage imageWithData:[NSURLConnection sendBrandedSynchronousRequest:request returningResponse:&response error:nil]];
 
             if (response.statusCode == HTTP_404_NOT_FOUND)
@@ -181,6 +178,13 @@
     });
 
     return image;
+}
+
+- (NSMutableURLRequest *)getRequest:(NSURL *)currentURL {
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:currentURL];
+    [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
+    [request setTimeoutInterval:(self.requestTimeoutSeconds / (CGFloat) self.retryCount)];
+    return request;
 }
 
 @end
