@@ -29,4 +29,5 @@
 
 @interface RMOpenCycleMapSource : RMAbstractWebMapSource
 
+- (id)initWithApiKey:(NSString *)apiKey;
 @end
