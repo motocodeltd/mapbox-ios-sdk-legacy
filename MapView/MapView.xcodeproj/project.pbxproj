@@ -1019,7 +1019,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/Map/GRMustache/lib\"",
-					"\"$(SRCROOT)/../Proj4\"",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = Mapbox;
@@ -1045,7 +1044,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/Map/GRMustache/lib\"",
-					"\"$(SRCROOT)/../Proj4\"",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = Mapbox;
