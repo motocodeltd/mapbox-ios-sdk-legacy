@@ -36,8 +36,7 @@
 
 @synthesize retryCount, requestTimeoutSeconds;
 
-- (id)init
-{
+- (id)init {
     if (!(self = [super init]))
         return nil;
 
@@ -47,50 +46,42 @@
     return self;
 }
 
-- (NSURL *)URLForTile:(RMTile)tile
-{
+- (NSURL *)URLForTile:(RMTile)tile {
     @throw [NSException exceptionWithName:@"RMAbstractMethodInvocation"
                                    reason:@"URLForTile: invoked on RMAbstractWebMapSource. Override this method when instantiating an abstract class."
                                  userInfo:nil];
 }
 
-- (NSArray *)URLsForTile:(RMTile)tile
-{
+- (NSArray *)URLsForTile:(RMTile)tile {
     return [NSArray arrayWithObjects:[self URLForTile:tile], nil];
 }
 
-- (UIImage *)imageForTile:(RMTile)tile inCache:(RMTileCache *)tileCache
-{
+- (UIImage *)imageForTile:(RMTile)tile inCache:(RMTileCache *)tileCache {
     __block UIImage *image = nil;
 
-	tile = [[self mercatorToTileProjection] normaliseTile:tile];
+    tile = [[self mercatorToTileProjection] normaliseTile:tile];
 
     // Return NSNull here so that the RMMapTiledLayerView will try to
     // fetch another tile if missingTilesDepth > 0
-    if ( ! [self tileSourceHasTile:tile])
-        return (UIImage *)[NSNull null];
+    if (![self tileSourceHasTile:tile])
+        return (UIImage *) [NSNull null];
 
-    if (self.isCacheable)
-    {
+    if (self.isCacheable) {
         image = [tileCache cachedImage:tile withCacheKey:[self uniqueTilecacheKey]];
 
         if (image)
             return image;
     }
 
-    dispatch_async(dispatch_get_main_queue(), ^(void)
-    {
+    dispatch_async(dispatch_get_main_queue(), ^(void) {
         [[NSNotificationCenter defaultCenter] postNotificationName:RMTileRequested object:[NSNumber numberWithUnsignedLongLong:RMTileKey(tile)]];
     });
 
     NSArray *URLs = [self URLsForTile:tile];
 
-    if ([URLs count] == 0)
-    {
+    if ([URLs count] == 0) {
         return nil;
-    }
-    else if ([URLs count] > 1)
-    {
+    } else if ([URLs count] > 1) {
         // fill up collection array with placeholders
         //
         NSMutableArray *tilesData = [NSMutableArray arrayWithCapacity:[URLs count]];
@@ -100,24 +91,19 @@
 
         dispatch_group_t fetchGroup = dispatch_group_create();
 
-        for (NSUInteger u = 0; u < [URLs count]; ++u)
-        {
+        for (NSUInteger u = 0; u < [URLs count]; ++u) {
             NSURL *currentURL = [URLs objectAtIndex:u];
 
-            dispatch_group_async(fetchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void)
-            {
+            dispatch_group_async(fetchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
                 NSData *tileData = nil;
 
-                for (NSUInteger try = 0; tileData == nil && try < self.retryCount; ++try)
-                {
+                for (NSUInteger try = 0; tileData == nil && try < self.retryCount; ++try) {
                     NSMutableURLRequest *request = [self getRequest:currentURL];
                     tileData = [NSURLConnection sendBrandedSynchronousRequest:request returningResponse:nil error:nil];
                 }
 
-                if (tileData)
-                {
-                    @synchronized (self)
-                    {
+                if (tileData) {
+                    @synchronized (self) {
                         // safely put into collection array in proper order
                         //
                         [tilesData replaceObjectAtIndex:u withObject:tileData];
@@ -129,38 +115,32 @@
         // wait for whole group of fetches (with retries) to finish, then clean up
         //
         dispatch_group_wait(fetchGroup, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC * self.requestTimeoutSeconds));
-#if ! OS_OBJECT_USE_OBJC
+#if !OS_OBJECT_USE_OBJC
         dispatch_release(fetchGroup);
 #endif
 
         // composite the collected images together
         //
-        for (NSData *tileData in tilesData)
-        {
-            if (tileData && [tileData isKindOfClass:[NSData class]] && [tileData length])
-            {
-                if (image != nil)
-                {
-                    UIGraphicsBeginImageContext(image.size);
-                    [image drawAtPoint:CGPointMake(0,0)];
-                    [[UIImage imageWithData:tileData] drawAtPoint:CGPointMake(0,0)];
+        @synchronized (self) {
+            for (NSData *tileData in tilesData) {
+                if (tileData && [tileData isKindOfClass:[NSData class]] && [tileData length]) {
+                    if (image != nil) {
+                        UIGraphicsBeginImageContext(image.size);
+                        [image drawAtPoint:CGPointMake(0, 0)];
+                        [[UIImage imageWithData:tileData] drawAtPoint:CGPointMake(0, 0)];
 
-                    image = UIGraphicsGetImageFromCurrentImageContext();
-                    UIGraphicsEndImageContext();
-                }
-                else
-                {
-                    image = [UIImage imageWithData:tileData];
+                        image = UIGraphicsGetImageFromCurrentImageContext();
+                        UIGraphicsEndImageContext();
+                    } else {
+                        image = [UIImage imageWithData:tileData];
+                    }
                 }
             }
         }
-    }
-    else
-    {
-        for (NSUInteger try = 0; image == nil && try < self.retryCount; ++try)
-        {
+    } else {
+        for (NSUInteger try = 0; image == nil && try < self.retryCount; ++try) {
             NSHTTPURLResponse *response = nil;
-            
+
             NSMutableURLRequest *request = [self getRequest:URLs[0]];
             image = [UIImage imageWithData:[NSURLConnection sendBrandedSynchronousRequest:request returningResponse:&response error:nil]];
 
@@ -172,8 +152,7 @@
     if (image && self.isCacheable)
         [tileCache addImage:image forTile:tile withCacheKey:[self uniqueTilecacheKey]];
 
-    dispatch_async(dispatch_get_main_queue(), ^(void)
-    {
+    dispatch_async(dispatch_get_main_queue(), ^(void) {
         [[NSNotificationCenter defaultCenter] postNotificationName:RMTileRetrieved object:[NSNumber numberWithUnsignedLongLong:RMTileKey(tile)]];
     });
 
